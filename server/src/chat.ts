@@ -1,7 +1,8 @@
-import type { Content, Part } from "@google/genai";
-import { ai, toolDeclarations } from "./gemini.js";
 import { config } from "./config.js";
 import { RepoTools } from "./tools.js";
+import { getProvider } from "./providers/index.js";
+import { dispatch, toolSpecs } from "./tools-spec.js";
+import type { LlmMessage } from "./providers/types.js";
 import type { ArchitectureMap, ChatAnswer } from "./types.js";
 
 const MAX_CHAT_STEPS = 8;
@@ -20,19 +21,6 @@ ${map.nodes.map((n) => `- ${n.label} (${n.id}): ${n.description}`).join("\n")}`;
 
 const CITE = /[\w./-]+\.[A-Za-z]+:\d+/g;
 
-async function dispatch(tools: RepoTools, name: string, args: Record<string, any>) {
-  switch (name) {
-    case "list_files":
-      return (await tools.listFiles(args.dir ?? ".")).join("\n");
-    case "read_file":
-      return await tools.readFile(args.file, args.start, args.end);
-    case "grep":
-      return (await tools.grep(args.pattern, args.ext)).join("\n");
-    default:
-      throw new Error(`Unknown tool: ${name}`);
-  }
-}
-
 /** Answer a question about the repo, letting the model re-read files as needed. */
 export async function answerQuestion(
   root: string,
@@ -40,37 +28,38 @@ export async function answerQuestion(
   question: string,
 ): Promise<ChatAnswer> {
   const tools = new RepoTools(root);
-  const contents: Content[] = [{ role: "user", parts: [{ text: question }] }];
+  const provider = getProvider();
+  const system = systemFor(map);
+  const messages: LlmMessage[] = [{ role: "user", content: question }];
 
   for (let step = 0; step < MAX_CHAT_STEPS; step++) {
-    const response = await ai.models.generateContent({
+    const { text, toolCalls } = await provider.generate({
       model: config.agentModel,
-      contents,
-      config: {
-        systemInstruction: systemFor(map),
-        tools: [{ functionDeclarations: toolDeclarations }],
-      },
+      system,
+      messages,
+      tools: toolSpecs,
     });
 
-    const calls = response.functionCalls ?? [];
-    if (calls.length === 0) {
-      const answer = response.text?.trim() ?? "(no answer)";
+    if (toolCalls.length === 0) {
+      const answer = text || "(no answer)";
       const citations = [...new Set(answer.match(CITE) ?? [])];
       return { answer, citations };
     }
 
-    contents.push({ role: "model", parts: calls.map((c) => ({ functionCall: c })) as Part[] });
-    const parts: Part[] = [];
-    for (const call of calls) {
-      const name = call.name ?? "";
+    messages.push({ role: "assistant", content: text || undefined, toolCalls });
+    for (const call of toolCalls) {
       try {
-        const result = await dispatch(tools, name, (call.args ?? {}) as Record<string, any>);
-        parts.push({ functionResponse: { name, response: { result } } });
+        const result = await dispatch(tools, call.name, call.args);
+        messages.push({ role: "tool", toolCallId: call.id, name: call.name, content: result });
       } catch (err) {
-        parts.push({ functionResponse: { name, response: { error: (err as Error).message } } });
+        messages.push({
+          role: "tool",
+          toolCallId: call.id,
+          name: call.name,
+          content: `error: ${(err as Error).message}`,
+        });
       }
     }
-    contents.push({ role: "user", parts });
   }
 
   return { answer: "I couldn't resolve that within the step budget.", citations: [] };
