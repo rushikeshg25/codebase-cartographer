@@ -1,6 +1,10 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import ignore, { type Ignore } from "ignore";
+import ignoreModule, { type Ignore, type Options } from "ignore";
+
+// `ignore` is a CJS module whose default export is the factory function; under
+// NodeNext its type resolves to the namespace, so re-type it as the factory.
+const ignore = ignoreModule as unknown as (options?: Options) => Ignore;
 
 const SKIP_DIRS = new Set([".git", "node_modules", "dist", "build", ".next", "vendor"]);
 const MAX_READ_BYTES = 200_000;
