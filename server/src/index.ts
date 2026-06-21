@@ -9,7 +9,16 @@ import { createSession, getSession } from "./session.js";
 import type { AgentEvent } from "./types.js";
 
 const app = express();
-app.use(cors());
+// This server exposes filesystem-reading tools, so only allow same-machine use:
+// bind to loopback (below) and accept browser requests only from localhost origins.
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      const ok = !origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+      cb(ok ? null : new Error("Cross-origin request blocked"), ok);
+    },
+  }),
+);
 app.use(express.json());
 
 // Create a session from a GitHub URL or local path.
@@ -69,6 +78,6 @@ app.post("/api/sessions/:id/chat", async (req, res) => {
   }
 });
 
-app.listen(config.port, () => {
-  console.log(`Cartographer server listening on http://localhost:${config.port}`);
+app.listen(config.port, "127.0.0.1", () => {
+  console.log(`Cartographer server listening on http://127.0.0.1:${config.port}`);
 });
