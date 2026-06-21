@@ -37,3 +37,25 @@ Open http://localhost:5173, paste a GitHub URL (or a local path) and watch it ma
 server/   Express API, agent loop, tools, synthesis, chat
 web/      React UI: input form, live agent stream, diagram, chat
 ```
+
+## Development & verification
+
+Terminal harnesses let you exercise the backend without the UI:
+
+```bash
+# Tools only — lists files, reads, greps, and checks the path-escape sandbox
+npm run tools -w server -- <repo-path>
+
+# Full pipeline — explore + synthesize, streaming steps to stdout (needs GEMINI_API_KEY)
+GEMINI_API_KEY=... npm run agent -w server -- <repo-path-or-url>
+```
+
+Typecheck: `npx tsc -p server/tsconfig.json --noEmit` and `npm run build -w web`.
+
+### API
+
+| Method | Route | Purpose |
+| ------ | ----- | ------- |
+| POST | `/api/sessions` | Ingest a URL/path, returns `sessionId` |
+| GET  | `/api/sessions/:id/stream` | SSE: live agent events, then the map |
+| POST | `/api/sessions/:id/chat` | Grounded Q&A over the mapped repo |
