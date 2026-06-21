@@ -19,7 +19,30 @@ Powered by the **Gemini API** (`@google/genai`).
 
 - **Backend:** Node + TypeScript, Express, Server-Sent Events
 - **Frontend:** Vite + React, React Flow (diagram)
-- **Model:** Gemini via `@google/genai`
+- **Model:** Gemini (`@google/genai`) or OpenRouter (`openai` SDK), behind one interface
+
+## Providers
+
+The LLM backend is selected with `LLM_PROVIDER` (default `gemini`):
+
+| Provider | Env | Default agent / synth models |
+| -------- | --- | ---------------------------- |
+| `gemini` | `GEMINI_API_KEY` | `gemini-2.5-flash` / `gemini-2.5-pro` |
+| `openrouter` | `OPENROUTER_API_KEY` | `google/gemini-2.5-flash` / `anthropic/claude-sonnet-4-6` |
+
+Override models with `AGENT_MODEL` / `SYNTH_MODEL`. Only the active provider's key is required.
+Both go through a provider-neutral interface (`server/src/providers/`), so the agent, chat, and
+synthesis code is identical regardless of backend.
+
+```bash
+LLM_PROVIDER=openrouter OPENROUTER_API_KEY=... npm run dev
+```
+
+## Security
+
+This server exposes filesystem-reading tools, so it is built to run on your own machine only:
+it binds to `127.0.0.1`, restricts CORS to localhost origins, confines all tool access to the
+target repo (rejecting `..`, symlink escapes, and `.git`), and caps regex/read sizes.
 
 ## Quick start
 
