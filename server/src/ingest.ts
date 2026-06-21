@@ -45,7 +45,7 @@ async function cloneRepo(url: string): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "cartographer-"));
   await execFileAsync(
     "git",
-    ["clone", "--depth", "1", "--quiet", url, dir],
+    ["clone", "--depth", "1", "--single-branch", "--no-tags", "--quiet", url, dir],
     { timeout: 120_000 },
   );
   return dir;
