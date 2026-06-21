@@ -1,0 +1,17 @@
+{
+  "name": "codebase-cartographer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "An AI agent that explores any codebase and maps it live, powered by Gemini.",
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,web -c blue,magenta \"npm run dev -w server\" \"npm run dev -w web\"",
+    "build": "npm run build -w server && npm run build -w web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
