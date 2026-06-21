@@ -11,7 +11,7 @@ async function main() {
 
   const findings = await exploreRepo(root, (event) => {
     if (event.type === "tool_call") {
-      console.log(`  → ${event.tool}(${JSON.stringify(event.args)})`);
+      console.log(`  -> ${event.tool}(${JSON.stringify(event.args)})`);
     } else if (event.type === "tool_result") {
       console.log(`    ${event.summary}`);
     } else if (event.type === "thought") {

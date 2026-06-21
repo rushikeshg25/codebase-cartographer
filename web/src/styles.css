@@ -134,6 +134,16 @@ button:disabled {
   align-items: center;
 }
 
+.tool-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: #1d4ed8;
+  color: #dbeafe;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
 .tool-name {
   font-weight: 600;
   color: #60a5fa;

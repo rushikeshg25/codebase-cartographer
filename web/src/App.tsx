@@ -42,7 +42,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1>🗺 Codebase Cartographer</h1>
+        <h1>Codebase Cartographer</h1>
         <div className="input-row">
           <input
             value={input}

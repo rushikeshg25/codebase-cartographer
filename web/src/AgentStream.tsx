@@ -5,10 +5,10 @@ interface Props {
   events: AgentEvent[];
 }
 
-const TOOL_ICON: Record<string, string> = {
-  list_files: "📂",
-  read_file: "📄",
-  grep: "🔎",
+const TOOL_BADGE: Record<string, string> = {
+  list_files: "LIST",
+  read_file: "READ",
+  grep: "GREP",
 };
 
 /** Live, scrolling feed of the agent's thoughts and tool calls. */
@@ -23,18 +23,17 @@ export default function AgentStream({ events }: Props) {
     <div className="stream">
       {events.map((event, i) => (
         <div key={i} className={`event event-${event.type}`}>
-          {event.type === "status" && <span className="status">› {event.message}</span>}
+          {event.type === "status" && <span className="status">&gt; {event.message}</span>}
           {event.type === "thought" && <p className="thought">{event.text}</p>}
           {event.type === "tool_call" && (
             <div className="tool-call">
-              <span className="tool-name">
-                {TOOL_ICON[event.tool] ?? "🛠"} {event.tool}
-              </span>
+              <span className="tool-badge">{TOOL_BADGE[event.tool] ?? "TOOL"}</span>
+              <span className="tool-name">{event.tool}</span>
               <code className="tool-args">{JSON.stringify(event.args)}</code>
             </div>
           )}
           {event.type === "tool_result" && <div className="tool-result">{event.summary}</div>}
-          {event.type === "error" && <div className="error">⚠ {event.message}</div>}
+          {event.type === "error" && <div className="error">Error: {event.message}</div>}
         </div>
       ))}
       <div ref={endRef} />

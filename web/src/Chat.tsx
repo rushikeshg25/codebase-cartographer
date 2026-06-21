@@ -32,7 +32,7 @@ export default function Chat({ sessionId }: Props) {
         { role: "agent", text: answer.answer, citations: answer.citations },
       ]);
     } catch (err) {
-      setMessages((m) => [...m, { role: "agent", text: `⚠ ${(err as Error).message}` }]);
+      setMessages((m) => [...m, { role: "agent", text: `Error: ${(err as Error).message}` }]);
     } finally {
       setBusy(false);
     }
