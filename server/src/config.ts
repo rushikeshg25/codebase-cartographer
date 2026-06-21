@@ -18,7 +18,7 @@ if (provider !== "gemini" && provider !== "openrouter") {
 // Per-provider model defaults; override with AGENT_MODEL / SYNTH_MODEL.
 const defaults =
   provider === "openrouter"
-    ? { agent: "google/gemini-2.5-flash", synth: "anthropic/claude-sonnet-4-6" }
+    ? { agent: "google/gemini-2.5-flash", synth: "anthropic/claude-sonnet-4.6" }
     : { agent: "gemini-2.5-flash", synth: "gemini-2.5-pro" };
 
 export const config = {

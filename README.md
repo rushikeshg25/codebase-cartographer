@@ -28,7 +28,7 @@ The LLM backend is selected with `LLM_PROVIDER` (default `gemini`):
 | Provider | Env | Default agent / synth models |
 | -------- | --- | ---------------------------- |
 | `gemini` | `GEMINI_API_KEY` | `gemini-2.5-flash` / `gemini-2.5-pro` |
-| `openrouter` | `OPENROUTER_API_KEY` | `google/gemini-2.5-flash` / `anthropic/claude-sonnet-4-6` |
+| `openrouter` | `OPENROUTER_API_KEY` | `google/gemini-2.5-flash` / `anthropic/claude-sonnet-4.6` |
 
 Override models with `AGENT_MODEL` / `SYNTH_MODEL`. Only the active provider's key is required.
 Both go through a provider-neutral interface (`server/src/providers/`), so the agent, chat, and
