@@ -10,6 +10,7 @@ const SKIP_DIRS = new Set([".git", "node_modules", "dist", "build", ".next", "ve
 const MAX_READ_BYTES = 200_000;
 const MAX_GREP_HITS = 100;
 const MAX_LIST_ENTRIES = 500;
+const MAX_PATTERN_LENGTH = 200;
 
 /**
  * A repository-scoped toolset. Every path argument is resolved against `root`
@@ -18,17 +19,48 @@ const MAX_LIST_ENTRIES = 500;
  */
 export class RepoTools {
   private ig: Ignore | null = null;
+  private realRoot: string | null = null;
 
   constructor(public readonly root: string) {}
 
-  /** Resolve a repo-relative path safely, throwing on escape attempts. */
-  private resolve(relPath: string): string {
+  /** The repo root with symlinks resolved, cached. */
+  private async getRealRoot(): Promise<string> {
+    if (this.realRoot === null) this.realRoot = await fs.realpath(this.root);
+    return this.realRoot;
+  }
+
+  /**
+   * Resolve a repo-relative path safely. Rejects textual escapes (`..`), paths
+   * under `.git`, and anything whose real (symlink-resolved) location lands
+   * outside the repository root.
+   */
+  private async resolve(relPath: string): Promise<string> {
     const abs = path.resolve(this.root, relPath || ".");
     const rel = path.relative(this.root, abs);
     if (rel.startsWith("..") || path.isAbsolute(rel)) {
       throw new Error(`Path escapes repository root: ${relPath}`);
     }
+    if (rel === ".git" || rel.startsWith(`.git${path.sep}`)) {
+      throw new Error(`Refusing to access the .git directory: ${relPath}`);
+    }
+    // Resolve symlinks on the deepest existing ancestor and confine to the root.
+    const realRoot = await this.getRealRoot();
+    const real = await this.realpathConfined(abs);
+    const realRel = path.relative(realRoot, real);
+    if (realRel.startsWith("..") || path.isAbsolute(realRel)) {
+      throw new Error(`Path escapes repository root via symlink: ${relPath}`);
+    }
     return abs;
+  }
+
+  /** realpath that tolerates a not-yet-existing leaf by resolving its parent. */
+  private async realpathConfined(abs: string): Promise<string> {
+    try {
+      return await fs.realpath(abs);
+    } catch {
+      const parent = await fs.realpath(path.dirname(abs));
+      return path.join(parent, path.basename(abs));
+    }
   }
 
   /** Lazily load and cache the repo's .gitignore rules. */
@@ -52,11 +84,12 @@ export class RepoTools {
 
   /** List entries of a directory, skipping noise and gitignored files. */
   async listFiles(dir = "."): Promise<string[]> {
-    const abs = this.resolve(dir);
+    const abs = await this.resolve(dir);
     const entries = await fs.readdir(abs, { withFileTypes: true });
     const out: string[] = [];
     for (const entry of entries) {
       if (SKIP_DIRS.has(entry.name)) continue;
+      if (entry.isSymbolicLink()) continue; // never follow links out of the repo
       const childAbs = path.join(abs, entry.name);
       if (await this.isIgnored(childAbs)) continue;
       const rel = path.relative(this.root, childAbs);
@@ -68,7 +101,7 @@ export class RepoTools {
 
   /** Read a file with 1-based line numbers, for citable output. */
   async readFile(file: string, start?: number, end?: number): Promise<string> {
-    const abs = this.resolve(file);
+    const abs = await this.resolve(file);
     const stat = await fs.stat(abs);
     if (stat.isDirectory()) throw new Error(`${file} is a directory, not a file.`);
     if (stat.size > MAX_READ_BYTES) {
@@ -87,6 +120,10 @@ export class RepoTools {
 
   /** Regex search across files, returning `path:line: text` hits. */
   async grep(pattern: string, globExt?: string): Promise<string[]> {
+    // Cap pattern length to limit catastrophic-backtracking (ReDoS) exposure.
+    if (pattern.length > MAX_PATTERN_LENGTH) {
+      throw new Error(`Pattern too long (limit ${MAX_PATTERN_LENGTH} chars).`);
+    }
     let re: RegExp;
     try {
       re = new RegExp(pattern);
@@ -100,6 +137,7 @@ export class RepoTools {
       for (const entry of entries) {
         if (hits.length >= MAX_GREP_HITS) return;
         if (SKIP_DIRS.has(entry.name)) continue;
+        if (entry.isSymbolicLink()) continue; // never follow links out of the repo
         const childAbs = path.join(dir, entry.name);
         if (await this.isIgnored(childAbs)) continue;
         if (entry.isDirectory()) {
