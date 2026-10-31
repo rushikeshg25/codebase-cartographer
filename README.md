@@ -31,6 +31,9 @@ The LLM backend is selected with `LLM_PROVIDER` (default `gemini`):
 | `openrouter` | `OPENROUTER_API_KEY` | `google/gemini-2.5-flash` / `anthropic/claude-sonnet-4.6` |
 
 Override models with `AGENT_MODEL` / `SYNTH_MODEL`. Only the active provider's key is required.
+Blank model overrides use the provider defaults. The backend loads the repository-root
+`.env`, including when launched through the `server` workspace; `server/.env` is not used.
+Existing shell environment variables take precedence. Restart the backend after editing `.env`.
 Both go through a provider-neutral interface (`server/src/providers/`), so the agent, chat, and
 synthesis code is identical regardless of backend.
 
@@ -74,6 +77,7 @@ GEMINI_API_KEY=... npm run agent -w server -- <repo-path-or-url>
 ```
 
 Typecheck: `npx tsc -p server/tsconfig.json --noEmit` and `npm run build -w web`.
+Configuration regression tests: `npm test -w server` (no API keys or network required).
 
 ### API
 

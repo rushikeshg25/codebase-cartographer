@@ -1,4 +1,7 @@
-import "dotenv/config";
+import { fileURLToPath } from "node:url";
+import { config as loadEnv } from "dotenv";
+
+loadEnv({ path: fileURLToPath(new URL("../../.env", import.meta.url)) });
 
 function required(name: "GEMINI_API_KEY" | "OPENROUTER_API_KEY"): string {
   const value = process.env[name];
@@ -26,8 +29,8 @@ export const config = {
   // Only the active provider's key is required.
   geminiApiKey: provider === "gemini" ? required("GEMINI_API_KEY") : "",
   openrouterApiKey: provider === "openrouter" ? required("OPENROUTER_API_KEY") : "",
-  agentModel: process.env.AGENT_MODEL ?? defaults.agent,
-  synthModel: process.env.SYNTH_MODEL ?? defaults.synth,
+  agentModel: process.env.AGENT_MODEL?.trim() || defaults.agent,
+  synthModel: process.env.SYNTH_MODEL?.trim() || defaults.synth,
   port: Number(process.env.PORT ?? 8787),
   // Hard cap on agent tool-calling iterations, to bound cost.
   maxAgentSteps: Number(process.env.MAX_AGENT_STEPS ?? 25),

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
+    "test": "node --test test/*.test.mjs",
     "start": "node dist/index.js",
     "tools": "tsx src/cli/tools-harness.ts",
     "agent": "tsx src/cli/agent-harness.ts"
